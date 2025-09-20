@@ -1,6 +1,6 @@
 name: firecrawl
 x-common-service: &common-service
-  build: apps/api
+  image: mendableai/firecrawl:latest
   ulimits:
     nofile:
       soft: 65535
