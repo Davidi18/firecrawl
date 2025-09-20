@@ -1,17 +1,13 @@
 name: firecrawl
-
 x-common-service: &common-service
-  # NOTE: If you don't want to build the service locally,
-  # uncomment the build: statement and comment out the image: statement
-  # image: ghcr.io/firecrawl/firecrawl
   build: apps/api
-
   ulimits:
     nofile:
       soft: 65535
       hard: 65535
   networks:
     - backend
+    - coolify
   extra_hosts:
     - "host.docker.internal:host-gateway"
 
@@ -47,9 +43,6 @@ x-common-env: &common-env
 
 services:
   playwright-service:
-    # NOTE: If you don't want to build the service locally,
-    # uncomment the build: statement and comment out the image: statement
-    # image: ghcr.io/firecrawl/playwright-service:latest
     build: apps/playwright-service-ts
     environment:
       PORT: 3000
@@ -74,14 +67,25 @@ services:
     ports:
       - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
     command: node dist/src/harness.js --start-docker
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.middlewares.gzip.compress=true"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.firecrawl-http.entrypoints=web"
+      - "traefik.http.routers.firecrawl-http.middlewares=redirect-to-https"
+      - "traefik.http.routers.firecrawl-http.rule=Host(`firecrawl.strudel.marketing`)"
+      - "traefik.http.routers.firecrawl-http.service=firecrawl-service"
+      - "traefik.http.routers.firecrawl-https.entrypoints=websecure"
+      - "traefik.http.routers.firecrawl-https.middlewares=gzip"
+      - "traefik.http.routers.firecrawl-https.rule=Host(`firecrawl.strudel.marketing`)"
+      - "traefik.http.routers.firecrawl-https.service=firecrawl-service"
+      - "traefik.http.routers.firecrawl-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.firecrawl-https.tls=true"
+      - "traefik.http.services.firecrawl-service.loadbalancer.server.port=3002"
+      - "traefik.docker.network=coolify"
 
   redis:
-    # NOTE: If you want to use Valkey (open source) instead of Redis (source available),
-    # uncomment the Valkey statement and comment out the Redis statement.
-    # Using Valkey with Firecrawl is untested and not guaranteed to work. Use with caution.
     image: redis:alpine
-    # image: valkey/valkey:alpine
-
     networks:
       - backend
     command: redis-server --bind 0.0.0.0
@@ -100,3 +104,5 @@ services:
 networks:
   backend:
     driver: bridge
+  coolify:
+    external: true
