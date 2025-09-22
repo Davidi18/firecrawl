@@ -1,4 +1,6 @@
+version: '3.8'
 name: firecrawl
+
 x-common-service: &common-service
   build: apps/api
   ulimits:
@@ -15,7 +17,7 @@ x-common-env: &common-env
   REDIS_URL: ${REDIS_URL:-redis://redis:6379}
   REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://redis:6379}
   PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
-  # הורדתי את NUQ_DATABASE_URL כי אין פוסטגרס
+  NUQ_DATABASE_URL: postgres://postgres:postgres@nuq-postgres:5432/postgres
   USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION}
   OPENAI_API_KEY: ${OPENAI_API_KEY}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL}
@@ -64,24 +66,16 @@ services:
     depends_on:
       - redis
       - playwright-service
+      - nuq-postgres
     ports:
       - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
     command: node dist/src/harness.js --start-docker
     labels:
       - "traefik.enable=true"
-      - "traefik.http.middlewares.gzip.compress=true"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.firecrawl-http.entrypoints=web"
-      - "traefik.http.routers.firecrawl-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.firecrawl-http.rule=Host(`firecrawl.strudel.marketing`)"
-      - "traefik.http.routers.firecrawl-http.service=firecrawl-service"
-      - "traefik.http.routers.firecrawl-https.entrypoints=websecure"
-      - "traefik.http.routers.firecrawl-https.middlewares=gzip"
-      - "traefik.http.routers.firecrawl-https.rule=Host(`firecrawl.strudel.marketing`)"
-      - "traefik.http.routers.firecrawl-https.service=firecrawl-service"
-      - "traefik.http.routers.firecrawl-https.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.firecrawl-https.tls=true"
-      - "traefik.http.services.firecrawl-service.loadbalancer.server.port=3002"
+      - "traefik.http.routers.firecrawl.rule=Host(`firecrawl.strudel.marketing`)"
+      - "traefik.http.routers.firecrawl.entrypoints=websecure"
+      - "traefik.http.routers.firecrawl.tls.certresolver=letsencrypt"
+      - "traefik.http.services.firecrawl.loadbalancer.server.port=3002"
       - "traefik.docker.network=coolify"
 
   redis:
@@ -89,6 +83,17 @@ services:
     networks:
       - backend
     command: redis-server --bind 0.0.0.0
+
+  nuq-postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    networks:
+      - backend
+    ports:
+      - "5433:5432"
 
 networks:
   backend:
