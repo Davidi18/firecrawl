@@ -1,4 +1,5 @@
 name: firecrawl
+
 x-common-service: &common-service
   build: apps/api
   ulimits:
@@ -7,15 +8,14 @@ x-common-service: &common-service
       hard: 65535
   networks:
     - backend
-    - coolify
   extra_hosts:
     - "host.docker.internal:host-gateway"
 
 x-common-env: &common-env
-  REDIS_URL: redis://redis:6379
-  REDIS_RATE_LIMIT_URL: redis://redis:6379
-  PLAYWRIGHT_MICROSERVICE_URL: http://playwright-service:3000/scrape
-  NUQ_DATABASE_URL: postgres://postgres:postgres@nuq-postgres:5432/postgres
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+  REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://redis:6379}
+  PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
+  NUQ_DATABASE_URL: postgres://nuq:nuq@nuq-postgres:5432/nuq
   USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION}
   OPENAI_API_KEY: ${OPENAI_API_KEY}
   OPENAI_BASE_URL: ${OPENAI_BASE_URL}
@@ -68,22 +68,6 @@ services:
     ports:
       - "${PORT:-3002}:${INTERNAL_PORT:-3002}"
     command: node dist/src/harness.js --start-docker
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.middlewares.gzip.compress=true"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.firecrawl-http.entrypoints=http"
-      - "traefik.http.routers.firecrawl-http.middlewares=redirect-to-https"
-      - "traefik.http.routers.firecrawl-http.rule=Host(`firecrawl.strudel.marketing`)"
-      - "traefik.http.routers.firecrawl-http.service=firecrawl-service"
-      - "traefik.http.routers.firecrawl-https.entrypoints=https"
-      - "traefik.http.routers.firecrawl-https.middlewares=gzip"
-      - "traefik.http.routers.firecrawl-https.rule=Host(`firecrawl.strudel.marketing`)"
-      - "traefik.http.routers.firecrawl-https.service=firecrawl-service"
-      - "traefik.http.routers.firecrawl-https.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.firecrawl-https.tls=true"
-      - "traefik.http.services.firecrawl-service.loadbalancer.server.port=3002"
-      - "traefik.docker.network=coolify"
 
   redis:
     image: redis:alpine
@@ -92,18 +76,20 @@ services:
     command: redis-server --bind 0.0.0.0
 
   nuq-postgres:
-    build: apps/nuq-postgres
+    image: postgres:15
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: nuq
+      POSTGRES_PASSWORD: nuq
+      POSTGRES_DB: nuq
+    volumes:
+      - nuq_data:/var/lib/postgresql/data
     networks:
       - backend
-    ports:
-      - "5433:5432"
+    # אין ports → לא נחשף החוצה
 
 networks:
   backend:
     driver: bridge
-  coolify:
-    external: true
+
+volumes:
+  nuq_data:
