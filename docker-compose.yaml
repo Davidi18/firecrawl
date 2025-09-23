@@ -53,7 +53,6 @@ services:
       BLOCK_MEDIA: ${BLOCK_MEDIA}
     networks:
       - backend
-      - coolify
 
   api:
     <<: *common-service
@@ -62,7 +61,7 @@ services:
       HOST: "0.0.0.0"
       PORT: ${INTERNAL_PORT:-3002}
       WORKER_PORT: ${WORKER_PORT:-3005}
-      ENV: local
+      ENV: production
     depends_on:
       - redis
       - playwright-service
@@ -72,18 +71,18 @@ services:
     command: node dist/src/harness.js --start-docker
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
       - "traefik.http.routers.firecrawl.rule=Host(`firecrawl.strudel.marketing`)"
       - "traefik.http.routers.firecrawl.entrypoints=websecure"
       - "traefik.http.routers.firecrawl.tls.certresolver=letsencrypt"
-      - "traefik.http.services.firecrawl.loadbalancer.server.port=3002"
-      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.firecrawl.service=firecrawl-service"
+      - "traefik.http.services.firecrawl-service.loadbalancer.server.port=3002"
 
   redis:
     image: redis:alpine
-    command: redis-server --bind 0.0.0.0
     networks:
       - backend
-      - coolify
+    command: redis-server --bind 0.0.0.0
 
   nuq-postgres:
     build: apps/nuq-postgres
@@ -91,11 +90,10 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-    ports:
-      - "5432:5432"
     networks:
       - backend
-      - coolify
+    ports:
+      - "5432:5432"
 
 networks:
   backend:
