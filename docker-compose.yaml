@@ -13,8 +13,11 @@ x-common-service: &common-service
     - "host.docker.internal:host-gateway"
 
 x-common-env: &common-env
-  REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-  REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://redis:6379}
+  # Redis connection (עם סיסמה)
+  REDIS_URL: ${REDIS_URL:-redis://default:${REDIS_PASSWORD:-supersecret}@redis:6379}
+  REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://default:${REDIS_PASSWORD:-supersecret}@redis:6379}
+
+  # שאר המשתנים
   PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
   NUQ_DATABASE_URL: postgres://postgres:postgres@nuq-postgres:5432/postgres
   USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION}
@@ -82,7 +85,9 @@ services:
     image: redis:alpine
     networks:
       - backend
-    command: redis-server --bind 0.0.0.0
+    command: redis-server --bind 0.0.0.0 --requirepass ${REDIS_PASSWORD:-supersecret}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-supersecret}
 
   nuq-postgres:
     build: apps/nuq-postgres
