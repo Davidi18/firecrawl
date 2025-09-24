@@ -14,8 +14,8 @@ x-common-service: &common-service
 
 x-common-env: &common-env
   # Redis connection (עם סיסמה)
-  REDIS_URL: ${REDIS_URL:-redis://default:${REDIS_PASSWORD:-supersecret}@redis:6379}
-  REDIS_RATE_LIMIT_URL: ${REDIS_URL:-redis://default:${REDIS_PASSWORD:-supersecret}@redis:6379}
+  REDIS_URL: ${REDIS_URL:-redis://:${REDIS_PASSWORD:-supersecret}@redis:6379}
+  REDIS_RATE_LIMIT_URL: ${REDIS_RATE_LIMIT_URL:-redis://:${REDIS_PASSWORD:-supersecret}@redis:6379}
 
   # שאר המשתנים
   PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
