@@ -88,7 +88,7 @@ services:
       - backend
     command: redis-server --bind 0.0.0.0 --requirepass ${REDIS_PASSWORD:-supersecret}
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-supersecret}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
   nuq-postgres:
     build: apps/nuq-postgres
