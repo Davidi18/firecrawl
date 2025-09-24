@@ -86,8 +86,8 @@ services:
     image: redis:alpine
     networks:
       - backend
-    command: redis-server --bind 0.0.0.0 --requirepass ${REDIS_PASSWORD}
-    environment:
+      command: redis-server --bind 0.0.0.0 --requirepass ${REDIS_PASSWORD}
+      environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
 
   nuq-postgres:
