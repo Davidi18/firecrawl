@@ -1,7 +1,11 @@
 name: firecrawl
 
 x-common-service: &common-service
+  # NOTE: If you don't want to build the service locally,
+  # uncomment the image: statement and comment out the build: statement
+  # image: ghcr.io/firecrawl/firecrawl
   build: apps/api
+
   ulimits:
     nofile:
       soft: 65535
@@ -13,12 +17,9 @@ x-common-service: &common-service
     - "host.docker.internal:host-gateway"
 
 x-common-env: &common-env
-  # Redis connection (עם סיסמה)
-  REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-  REDIS_RATE_LIMIT_URL: redis://:${REDIS_PASSWORD}@redis:6379
-
-  # שאר המשתנים
-  PLAYWRIGHT_MICROSERVICE_URL: ${PLAYWRIGHT_MICROSERVICE_URL:-http://playwright-service:3000/scrape}
+  REDIS_URL: redis://redis:6379
+  REDIS_RATE_LIMIT_URL: redis://redis:6379
+  PLAYWRIGHT_MICROSERVICE_URL: http://playwright-service:3000/scrape
   NUQ_DATABASE_URL: postgres://postgres:postgres@nuq-postgres:5432/postgres
   USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION}
   OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -44,7 +45,6 @@ x-common-env: &common-env
   SEARXNG_ENDPOINT: ${SEARXNG_ENDPOINT}
   SEARXNG_ENGINES: ${SEARXNG_ENGINES}
   SEARXNG_CATEGORIES: ${SEARXNG_CATEGORIES}
-
 
 services:
   playwright-service:
@@ -86,9 +86,7 @@ services:
     image: redis:alpine
     networks:
       - backend
-      sh -c "exec redis-server --bind 0.0.0.0 --requirepass \"$${REDIS_PASSWORD}\""
-      environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --bind 0.0.0.0
 
   nuq-postgres:
     build: apps/nuq-postgres
